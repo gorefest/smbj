@@ -21,11 +21,12 @@ import java.util.Set;
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
 
 class NtlmMessage extends NtlmPacket {
-    protected static Set<NtlmNegotiateFlag> DEFAULT_FLAGS = EnumSet.of(
+
+    protected static EnumSet<NtlmNegotiateFlag> DEFAULT_FLAGS = EnumSet.of(
             NTLMSSP_NEGOTIATE_NTLM,
             NTLMSSP_NEGOTIATE_UNICODE);
 
-    protected Set<NtlmNegotiateFlag> negotiateFlags;
+
     protected WindowsVersion version;
 
     protected NtlmMessage(Set<NtlmNegotiateFlag> negotiateFlags, WindowsVersion version) {
@@ -33,4 +34,10 @@ class NtlmMessage extends NtlmPacket {
         this.negotiateFlags.addAll(DEFAULT_FLAGS);
         this.version = version;
     }
+
+    protected NtlmMessage() {
+        this(DEFAULT_FLAGS, new WindowsVersion(WindowsVersion.ProductMajorVersion.WINDOWS_MAJOR_VERSION_6, WindowsVersion.ProductMinorVersion.WINDOWS_MINOR_VERSION_0, 4711, WindowsVersion.NtlmRevisionCurrent.NTLMSSP_REVISION_W2K3));
+    }
+
+
 }

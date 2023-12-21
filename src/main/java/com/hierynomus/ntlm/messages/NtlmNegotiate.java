@@ -22,6 +22,7 @@ import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
+import java.io.IOException;
 import java.util.Set;
 
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
@@ -41,6 +42,11 @@ public class NtlmNegotiate extends NtlmMessage {
         this.workstation = workstation != null ? NtlmFunctions.oem(workstation) : EMPTY;
         this.omitVersion = omitVersion;
     }
+
+    public NtlmNegotiate ( byte[] material ) throws IOException {
+        parse(material);
+    }
+
 
     public void write(Buffer.PlainBuffer buffer) {
         buffer.putString("NTLMSSP\0", Charsets.UTF_8); // Signature (8 bytes)
@@ -94,5 +100,36 @@ public class NtlmNegotiate extends NtlmMessage {
                 "  version=" + version + "\n" +
                 "}";
     }
+
+
+    private void parse ( byte[] material ) throws IOException {
+        int pos = 0;
+        for ( int i = 0; i < 8; i++ ) {
+            if ( material[ i ] != NTLMSSP_SIGNATURE[ i ] ) {
+                throw new IOException("Not an NTLMSSP message.");
+            }
+        }
+        pos += 8;
+
+        if ( readULong(material, pos) != NTLMSSP_TYPE1 ) {
+            throw new IOException("Not a Type 1 message.");
+        }
+        pos += 4;
+
+        int flags = readULong(material, pos);
+        setFlags(flags);
+        pos += 4;
+
+        if ( ( flags & NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED.getValue() ) != 0 ) {
+            this.domain = readSecurityBuffer(material, pos);
+        }
+        pos += 8;
+
+        if ( ( flags & NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED.getValue() ) != 0 ) {
+            this.workstation = readSecurityBuffer(material, pos);
+        }
+        pos += 8;
+    }
+
 
 }

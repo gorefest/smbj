@@ -25,6 +25,7 @@ import com.hierynomus.protocol.commons.buffer.Buffer.PlainBuffer;
 
 import static com.hierynomus.ntlm.messages.Utils.*;
 
+import java.util.EnumSet;
 import java.util.Set;
 
 /**
@@ -52,7 +53,7 @@ public class NtlmAuthenticate extends NtlmMessage {
         this.domainName = ensureNotNull(domainName);
         this.workstation = ensureNotNull(workstation);
         this.encryptedRandomSessionKey = ensureNotNull(encryptedRandomSessionKey);
-        this.negotiateFlags = negotiateFlags;
+        this.negotiateFlags = EnumSet.copyOf(negotiateFlags);
     }
 
     private int getBaseMessageSize() {

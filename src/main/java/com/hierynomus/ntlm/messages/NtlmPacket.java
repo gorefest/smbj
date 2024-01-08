@@ -29,7 +29,7 @@ public class NtlmPacket implements Packet<Buffer.PlainBuffer> {
     protected static final int NTLMSSP_TYPE1 = 0x1;
     protected static final int NTLMSSP_TYPE2 = 0x2;
     protected static final int NTLMSSP_TYPE3 = 0x3;
-    protected EnumSet<NtlmNegotiateFlag> negotiateFlags;
+    protected EnumSet<NtlmNegotiateFlag> negotiateFlags = EnumSet.of(NTLMSSP_NEGOTIATE_NTLM);
 
     protected static final String OEM_ENCODING = "cp850";
     protected static final String UNI_ENCODING = "UTF-16LE";

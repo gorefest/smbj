@@ -70,4 +70,13 @@ class NtlmNegotiateFlagSpec extends Specification {
     0xa0880205L | NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_UNICODE
 
   }
+
+  def "Should correctly write a challenge String"(){
+    given:
+    String authorization  ="TlRMTVNTUAABAAAAAYIIogAAAAAoAAAAAAAAACgAAAAFASgKAAAADw==";
+    when:
+    def m = new NtlmNegotiate(Base64.decoder.decode(authorization));
+    then:
+    m != null
+  }
 }

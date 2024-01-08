@@ -52,6 +52,18 @@ class NtlmChallengeSpec extends Specification implements SampleMessages {
     m.targetInfo == null
   }
 
+  def "Should correctly write a challenge String"(){
+    given:
+    String authorization  ="TlRMTVNTUAABAAAAAYIIogAAAAAoAAAAAAAAACgAAAAFASgKAAAADw==";
+    String challenge = "76C8CQ+RNTfEBpWLdNxNHQ=="
+    when:
+    def m = new NtlmNegotiate(Base64.decoder.decode(authorization));
+    def n = new NtlmChallenge(m,Base64.decoder.decode(challenge),null);
+    then:
+    m != null
+    n != null
+  }
+
   def "Should correctly decode NTLMv2 NtlmChallenge message"() {
     given:
     def m = new NtlmChallenge()

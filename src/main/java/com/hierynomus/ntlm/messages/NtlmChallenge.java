@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.EnumSet;
 
-import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_REQUEST_TARGET;
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
 
 /**
  * [MS-NLMP].pdf 2.2.1.2 CHALLENGE_MESSAGE
@@ -66,6 +66,41 @@ public class NtlmChallenge extends NtlmPacket {
              "coo" : target);
     }
 
+
+    static void writeULong ( byte[] dest, int offset, int ulong ) {
+        dest[ offset ] = (byte) ( ulong & 0xff );
+        dest[ offset + 1 ] = (byte) ( ulong >> 8 & 0xff );
+        dest[ offset + 2 ] = (byte) ( ulong >> 16 & 0xff );
+        dest[ offset + 3 ] = (byte) ( ulong >> 24 & 0xff );
+    }
+
+
+    static void writeUShort ( byte[] dest, int offset, int ushort ) {
+        dest[ offset ] = (byte) ( ushort & 0xff );
+        dest[ offset + 1 ] = (byte) ( ushort >> 8 & 0xff );
+    }
+
+
+    static int writeSecurityBuffer ( byte[] dest, int offset, byte[] src ) {
+        int length = ( src != null ) ? src.length : 0;
+        if ( length == 0 ) {
+            return offset + 4;
+        }
+        writeUShort(dest, offset, length);
+        writeUShort(dest, offset + 2, length);
+        return offset + 4;
+    }
+
+
+    static int writeSecurityBufferContent ( byte[] dest, int pos, int off, byte[] src ) {
+        writeULong(dest, off, pos);
+        if ( src != null && src.length > 0 ) {
+            System.arraycopy(src, 0, dest, pos, src.length);
+            return src.length;
+        }
+        return 0;
+    }
+
     @Override
     public void read(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
         buffer.readString(Charsets.UTF_8, 8); // Signature (8 bytes) (NTLMSSP\0)
@@ -78,6 +113,66 @@ public class NtlmChallenge extends NtlmPacket {
         readVersion(buffer);
         readTargetName(buffer);
         readTargetInfo(buffer);
+    }
+
+    @Override
+    public void write(Buffer.PlainBuffer buffer) {
+        try {
+            int flags = getFlags(this.negotiateFlags);
+            String targetName = this.targetName;
+
+            // Header
+            buffer.putRawBytes("NTLMSP\0".getBytes(Charsets.UTF_8));
+
+            // MessageType
+            buffer.putUInt32(NTLMSSP_TYPE2);
+
+            // TargetNameFields
+            if (negotiateFlags.contains(NTLMSSP_REQUEST_TARGET)){
+                byte[] targetBytes = new byte[0];
+                targetBytes = (flags & NTLMSSP_NEGOTIATE_UNICODE.getValue()) != 0 ? targetName.getBytes(UNI_ENCODING)
+                    : targetName.toUpperCase().getBytes(OEM_ENCODING);
+                targetNameLen = targetBytes.length;
+                targetNameBufferOffset= 64;
+                buffer.putUInt16(targetNameLen);
+                buffer.putUInt16(targetNameLen);
+                buffer.putUInt32(targetNameBufferOffset);
+
+            } else {
+                buffer.putUInt16(0);
+                buffer.putUInt16(0);
+                buffer.putUInt32(0);
+            }
+
+            // Flags
+            buffer.putUInt32(flags);
+
+            // ServerChallenge
+            buffer.putRawBytes(serverChallenge);
+
+
+            // TargetInfoFields
+            if (negotiateFlags.contains(NTLMSSP_NEGOTIATE_TARGET_INFO) && this.targetInfo != null) {
+                this.targetInfo.writeTo(buffer);
+                flags |= NTLMSSP_NEGOTIATE_TARGET_INFO.getValue();
+            }
+
+            // Version
+            buffer.putUInt32(0);
+            buffer.putUInt32(0);
+
+            // TargetName
+            if (negotiateFlags.contains(NTLMSSP_REQUEST_TARGET)){
+                byte[] targetBytes = new byte[0];
+                targetBytes = (flags & NTLMSSP_NEGOTIATE_UNICODE.getValue()) != 0 ? targetName.getBytes(UNI_ENCODING)
+                    : targetName.toUpperCase().getBytes(OEM_ENCODING);
+                buffer.putRawBytes(targetBytes);
+            }
+
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void readTargetInfo(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
@@ -113,7 +208,7 @@ public class NtlmChallenge extends NtlmPacket {
     }
 
     private void readTargetInfoFields(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
-        if (negotiateFlags.contains(NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_TARGET_INFO)) {
+        if (negotiateFlags.contains(NTLMSSP_NEGOTIATE_TARGET_INFO)) {
             targetInfoLen = buffer.readUInt16(); // TargetInfoLen (2 bytes)
             buffer.skip(2); // TargetInfoMaxLen (2 bytes)
             targetInfoBufferOffset = buffer.readUInt32AsInt(); // TargetInfoBufferOffset (2 bytes)

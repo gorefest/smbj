@@ -15,6 +15,7 @@
  */
 package com.hierynomus.ntlm.messages;
 
+import com.hierynomus.ntlm.ResponseFields;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
 import static com.hierynomus.ntlm.functions.NtlmFunctions.unicode;
@@ -34,6 +35,14 @@ class Utils {
         buffer.putUInt16(arr.length); // ArrayMaxLen (2 bytes)
         buffer.putUInt32(offset); // ArrayOffset (4 bytes)
         return offset + arr.length;
+    }
+
+    static ResponseFields readOffsettedByteArrayFields(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+        ResponseFields responseFields = new ResponseFields();
+        responseFields.setResponseLen(buffer.readUInt16());
+        responseFields.setResponseMaxLen(buffer.readUInt16());
+        responseFields.setBufferOffset(buffer.readUInt32());
+        return responseFields;
     }
 
     static byte[] ensureNotNull(byte[] possiblyNull) {

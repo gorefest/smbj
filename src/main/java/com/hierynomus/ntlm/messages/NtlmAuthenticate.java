@@ -15,6 +15,7 @@
  */
 package com.hierynomus.ntlm.messages;
 
+import com.hierynomus.ntlm.ResponseFields;
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.Charsets;
@@ -23,8 +24,13 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.commons.buffer.Buffer.PlainBuffer;
 
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_NTLM;
+import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION;
 import static com.hierynomus.ntlm.messages.Utils.*;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -40,6 +46,11 @@ public class NtlmAuthenticate extends NtlmMessage {
     private byte[] workstation;
     private byte[] encryptedRandomSessionKey;
     private byte[] mic;
+
+   public NtlmAuthenticate() {
+
+   }
+
 
     public NtlmAuthenticate(
         byte[] lmResponse, byte[] ntResponse,
@@ -79,7 +90,7 @@ public class NtlmAuthenticate extends NtlmMessage {
         offset = writeOffsettedByteArrayFields(buffer, lmResponse, offset); // LmChallengeResponseFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, ntResponse, offset); // NtChallengeResponseFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, domainName, offset); // DomainNameFields (8 bytes)
-        offset = writeOffsettedByteArrayFields(buffer, userName, offset); // UserNameFields (8 bytes)
+        offset = writeOffsettedByteArrayFields(buffer, userName, offset); // UserNameFields (8 bytes)ch
         offset = writeOffsettedByteArrayFields(buffer, workstation, offset); // WorkstationFields (8 bytes)
         offset = writeOffsettedByteArrayFields(buffer, encryptedRandomSessionKey, offset); // EncryptedRandomSessionKeyFields (8 bytes)
 
@@ -136,5 +147,50 @@ public class NtlmAuthenticate extends NtlmMessage {
                 "  workstation='" + NtlmFunctions.unicode(workstation) + "',\n" +
                 "  encryptedRandomSessionKey=[<secret>],\n" +
                 '}';
+    }
+
+    /**
+     * Reading an NTLMAuthenticate Message. Based on inverting the write Function
+     * @param buffer
+     * @throws Buffer.BufferException
+     */
+    public void read(PlainBuffer buffer) throws Buffer.BufferException {
+// not used atm
+        String signature = buffer.readString(Charsets.UTF_8, 8);
+        long messageType = buffer.readUInt32();
+
+        // reading the 6 fields that define the size of the payload fields at the end
+        ResponseFields lmChallengeResponseFields = readOffsettedByteArrayFields(buffer);
+        ResponseFields ntChallengeResponseFields = readOffsettedByteArrayFields(buffer);
+        ResponseFields domainNameResponseFields = readOffsettedByteArrayFields(buffer);
+        ResponseFields userNameResponseFields = readOffsettedByteArrayFields(buffer);
+        ResponseFields workstationResponseFields = readOffsettedByteArrayFields(buffer);
+        ResponseFields encryptedRandomSessionKeyResponseFields = readOffsettedByteArrayFields(buffer);
+//       FIXME wireshark decoding this message gives a different result
+        this.negotiateFlags = EnumWithValue.EnumUtils.toEnumSet(buffer.readUInt32(), NtlmNegotiateFlag.class);
+//        according to the standard: when the Negotiate Version is set, 8 bytes of version info will be set
+        if (negotiateFlags.contains(NTLMSSP_NEGOTIATE_VERSION)){
+            this.version = new WindowsVersion().readFrom(buffer);
+        }
+
+//        FIXME not sure if this is read properly
+        this.mic = buffer.readRawBytes(16);
+
+
+        // use the length info to read from the payload
+//        FIXME lm and nt response look different in wireshark
+        buffer.rpos((int) lmChallengeResponseFields.getBufferOffset());
+        this.lmResponse = buffer.readRawBytes(lmChallengeResponseFields.getResponseLen());
+        buffer.rpos((int) ntChallengeResponseFields.getBufferOffset());
+        this.ntResponse = buffer.readRawBytes(ntChallengeResponseFields.getResponseLen());
+        buffer.rpos((int) userNameResponseFields.getBufferOffset());
+        this.userName = buffer.readRawBytes(userNameResponseFields.getResponseLen());
+        buffer.rpos((int) domainNameResponseFields.getBufferOffset());
+        this.domainName = buffer.readRawBytes(domainNameResponseFields.getResponseLen());
+        buffer.rpos((int) workstationResponseFields.getBufferOffset());
+        this.workstation = buffer.readRawBytes(workstationResponseFields.getResponseLen());
+        buffer.rpos((int) encryptedRandomSessionKeyResponseFields.getBufferOffset());
+        this.encryptedRandomSessionKey = buffer.readRawBytes(encryptedRandomSessionKeyResponseFields.getResponseLen());
+
     }
 }

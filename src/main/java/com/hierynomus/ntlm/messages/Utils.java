@@ -17,10 +17,14 @@ package com.hierynomus.ntlm.messages;
 
 import com.hierynomus.ntlm.ResponseFields;
 import com.hierynomus.protocol.commons.buffer.Buffer;
+import com.hierynomus.protocol.commons.buffer.Endian;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 import static com.hierynomus.ntlm.functions.NtlmFunctions.unicode;
 
-class Utils {
+public class Utils {
     public static byte[] EMPTY = new byte[0];
 
     /**
@@ -51,5 +55,29 @@ class Utils {
 
     static byte[] ensureNotNull(String possiblyNull) {
         return possiblyNull != null ? unicode(possiblyNull) : EMPTY;
+    }
+
+    /**
+     * Auth Tokens recorded from network traffic might contain an "NTLM" prefix and are base64 encoded
+     */
+    public static Buffer.PlainBuffer prepareAuthToken(String recordedToken) {
+        byte[] removedNtlmPrefix = removeNtlmPrefix(recordedToken);
+        byte[] decodedToken = Base64.getDecoder().decode(removedNtlmPrefix);
+        return new Buffer.PlainBuffer(decodedToken, Endian.LE);
+    }
+
+    /**
+     * Recorded tokens might contain a Prefix followed by a space. This has to be removed
+     * @param recordedToken Decoded (plain) token with or without prefix
+     * @return token without prefix
+     */
+    private static byte[] removeNtlmPrefix(String recordedToken) {
+        // Splitting based on space
+        String[] parts = recordedToken.split(" ");
+
+        // Checking if there is a second part, if not, use the original input
+        String resultString = (parts.length > 1) ? parts[1] : recordedToken;
+
+        return resultString.getBytes(StandardCharsets.UTF_8);
     }
 }

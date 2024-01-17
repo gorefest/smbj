@@ -37,6 +37,7 @@ import java.util.Set;
 /**
  * [MS-NLMP].pdf 2.2.1.3 AUTHENTICATE_MESSAGE
  */
+
 public class NtlmAuthenticate extends NtlmMessage {
 
     private byte[] lmResponse;
@@ -46,6 +47,54 @@ public class NtlmAuthenticate extends NtlmMessage {
     private byte[] workstation;
     private byte[] encryptedRandomSessionKey;
     private byte[] mic;
+
+    public String getLmResponse() {
+        return ByteArrayUtils.printHex(lmResponse);
+    }
+
+    public void setLmResponse(byte[] lmResponse) {
+        this.lmResponse = lmResponse;
+    }
+
+    public String getNtResponse() {
+        return ByteArrayUtils.printHex(ntResponse);
+    }
+
+    public void setNtResponse(byte[] ntResponse) {
+        this.ntResponse = ntResponse;
+    }
+
+    public String getUserName() {
+        return NtlmFunctions.unicode(userName);
+    }
+
+    public void setUserName(byte[] userName) {
+        this.userName = userName;
+    }
+
+    public String getDomainName() {
+        return NtlmFunctions.unicode(domainName);
+    }
+
+    public void setDomainName(byte[] domainName) {
+        this.domainName = domainName;
+    }
+
+    public String getWorkstation() {
+        return NtlmFunctions.unicode(workstation);
+    }
+
+    public void setWorkstation(byte[] workstation) {
+        this.workstation = workstation;
+    }
+
+    public void setEncryptedRandomSessionKey(byte[] encryptedRandomSessionKey) {
+        this.encryptedRandomSessionKey = encryptedRandomSessionKey;
+    }
+
+    public String getMic() {
+        return ByteArrayUtils.printHex(mic);
+    }
 
    public NtlmAuthenticate() {
 
@@ -150,12 +199,12 @@ public class NtlmAuthenticate extends NtlmMessage {
     }
 
     /**
-     * Reading an NTLMAuthenticate Message. Based on inverting the write Function
-     * @param buffer
+     * Reading an NTLMAuthenticate Message. Based on reverse engineering the write Function
+     * @param buffer plain buffer containing auth string starting with 'NTLMSSP'
      * @throws Buffer.BufferException
      */
     public void read(PlainBuffer buffer) throws Buffer.BufferException {
-// not used atm
+// not used but makes sure the reader is in the right position
         String signature = buffer.readString(Charsets.UTF_8, 8);
         long messageType = buffer.readUInt32();
 
@@ -166,6 +215,7 @@ public class NtlmAuthenticate extends NtlmMessage {
         ResponseFields userNameResponseFields = readOffsettedByteArrayFields(buffer);
         ResponseFields workstationResponseFields = readOffsettedByteArrayFields(buffer);
         ResponseFields encryptedRandomSessionKeyResponseFields = readOffsettedByteArrayFields(buffer);
+
 //       FIXME wireshark decoding this message gives a different result
         this.negotiateFlags = EnumWithValue.EnumUtils.toEnumSet(buffer.readUInt32(), NtlmNegotiateFlag.class);
 //        according to the standard: when the Negotiate Version is set, 8 bytes of version info will be set
@@ -173,12 +223,12 @@ public class NtlmAuthenticate extends NtlmMessage {
             this.version = new WindowsVersion().readFrom(buffer);
         }
 
-//        FIXME not sure if this is read properly
+//        TODO verify this is right. As far as the doc goes, this is just a checksum
         this.mic = buffer.readRawBytes(16);
 
-
         // use the length info to read from the payload
-//        FIXME lm and nt response look different in wireshark
+//         ntResponse = ntlm response
+//        lmResponse = lan manager response
         buffer.rpos((int) lmChallengeResponseFields.getBufferOffset());
         this.lmResponse = buffer.readRawBytes(lmChallengeResponseFields.getResponseLen());
         buffer.rpos((int) ntChallengeResponseFields.getBufferOffset());
@@ -191,6 +241,5 @@ public class NtlmAuthenticate extends NtlmMessage {
         this.workstation = buffer.readRawBytes(workstationResponseFields.getResponseLen());
         buffer.rpos((int) encryptedRandomSessionKeyResponseFields.getBufferOffset());
         this.encryptedRandomSessionKey = buffer.readRawBytes(encryptedRandomSessionKeyResponseFields.getResponseLen());
-
     }
 }

@@ -1,28 +1,79 @@
 package com.hierynomus.ntlm.functions;
 
 import com.hierynomus.ntlm.messages.NtlmAuthenticate;
-import com.hierynomus.protocol.commons.Charsets;
+import com.hierynomus.ntlm.messages.Utils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
-import com.hierynomus.protocol.commons.buffer.Endian;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import static org.junit.jupiter.api.Assertions.*;
 
 class NtlmDecoderTest {
 
     @Test
-    void decodeAuthToken() throws Buffer.BufferException {
+    void decodeKnownAuthToken() throws Buffer.BufferException {
         NtlmAuthenticate decodedAuthenticate = new NtlmAuthenticate();
-//        FIXME Not taking care of the NTLM prefix ATM
-//        String inputString1 = "NTLM TlRMTVNTUAADAAAAGAAYAEgAAADCAMIAYAAAAAYABgAiAQAAJAAkACgBAAAAAAAATAEAAAAAAABMAQAABYKJogUBKAoAAAAPkn1Ad9vmeXDs7QOuTZ/YFbd35olYYQCfgr7hlGC8dtszPt+OFy7nuAEBAAAAAAAA4I86IFBF2gE9RY5pB2WoVQAAAAACAAYAQwBPAE8AAQAYAEMATwBPAEMARwBOAE0ATwBTADAAMAA3AAQAEgBjAG8AbwAuAGwAbwBjAGEAbAADACwAQwBPAE8AQwBHAE4ATQBPAFMAMAAwADcALgBjAG8AbwAuAGwAbwBjAGEAbAAFABIAYwBvAG8ALgBsAG8AYwBhAGwABwAIACDbn55PRdoBAAAAAAAAAABDAE8ATwBzAGEAXwB3AGUAYgBzAGUAcgB2AGkAYwBlAF8AdABlAHMAdAA=";
-        String inputString1 = "TlRMTVNTUAADAAAAGAAYAEgAAADCAMIAYAAAAAYABgAiAQAAJAAkACgBAAAAAAAATAEAAAAAAABMAQAABYKJogUBKAoAAAAPkn1Ad9vmeXDs7QOuTZ/YFbd35olYYQCfgr7hlGC8dtszPt+OFy7nuAEBAAAAAAAA4I86IFBF2gE9RY5pB2WoVQAAAAACAAYAQwBPAE8AAQAYAEMATwBPAEMARwBOAE0ATwBTADAAMAA3AAQAEgBjAG8AbwAuAGwAbwBjAGEAbAADACwAQwBPAE8AQwBHAE4ATQBPAFMAMAAwADcALgBjAG8AbwAuAGwAbwBjAGEAbAAFABIAYwBvAG8ALgBsAG8AYwBhAGwABwAIACDbn55PRdoBAAAAAAAAAABDAE8ATwBzAGEAXwB3AGUAYgBzAGUAcgB2AGkAYwBlAF8AdABlAHMAdAA=";
-        byte[] decodedString = Base64.getDecoder().decode(inputString1);
-        Buffer.PlainBuffer buffer = new Buffer.PlainBuffer(decodedString, Endian.LE);
-        decodedAuthenticate.read(buffer);
+        String recordedToken = "NTLM TlRMTVNTUAADAAAAGAAYAEgAAADCAMIAYAAAAAYABgAiAQAAJAAkACgBAAAAAAAATAEAAAAAAABMAQAABYKJogUBKAoAAAAPVc8cCYaE+tVik4+rtG74UfIWwO1x0mjqNjdEYzZyW3KEe45rLaMFSQEBAAAAAAAAUBcfq4ZI2gGj/c8SKaaqeAAAAAACAAYAQwBPAE8AAQAYAEMATwBPAEMARwBOAE0ATwBTADAAMAA3AAQAEgBjAG8AbwAuAGwAbwBjAGEAbAADACwAQwBPAE8AQwBHAE4ATQBPAFMAMAAwADcALgBjAG8AbwAuAGwAbwBjAGEAbAAFABIAYwBvAG8ALgBsAG8AYwBhAGwABwAIABd2GquGSNoBAAAAAAAAAABDAE8ATwBzAGEAXwB3AGUAYgBzAGUAcgB2AGkAYwBlAF8AdABlAHMAdAA=";
+        String expectedNtResponse = "36 37 44 63 36 72 5b 72 84 7b 8e 6b 2d a3 05 49 " +
+                                    "01 01 00 00 00 00 00 00 50 17 1f ab 86 48 da 01 " +
+                                    "a3 fd cf 12 29 a6 aa 78 00 00 00 00 02 00 06 00 " +
+                                    "43 00 4f 00 4f 00 01 00 18 00 43 00 4f 00 4f 00 " +
+                                    "43 00 47 00 4e 00 4d 00 4f 00 53 00 30 00 30 00 " +
+                                    "37 00 04 00 12 00 63 00 6f 00 6f 00 2e 00 6c 00 " +
+                                    "6f 00 63 00 61 00 6c 00 03 00 2c 00 43 00 4f 00 " +
+                                    "4f 00 43 00 47 00 4e 00 4d 00 4f 00 53 00 30 00 " +
+                                    "30 00 37 00 2e 00 63 00 6f 00 6f 00 2e 00 6c 00 " +
+                                    "6f 00 63 00 61 00 6c 00 05 00 12 00 63 00 6f 00 " +
+                                    "6f 00 2e 00 6c 00 6f 00 63 00 61 00 6c 00 07 00 " +
+                                    "08 00 17 76 1a ab 86 48 da 01 00 00 00 00 00 00 " +
+                                    "00 00";
+        String expectedLmResponse = "55 cf 1c 09 86 84 fa d5 62 93 8f ab b4 6e f8 51 f2 16 c0 ed 71 d2 68 ea";
 
-        System.out.println(decodedAuthenticate.toString());
+
+        Buffer.PlainBuffer preparedToken = Utils.prepareAuthToken(recordedToken);
+        decodedAuthenticate.read(preparedToken);
+
+//        The expected values are taken from Wiresharks decoding of the token
+        Assertions.assertThat(decodedAuthenticate.getUserName()).isEqualTo("sa_webservice_test");
+        Assertions.assertThat(decodedAuthenticate.getDomainName()).isEqualTo("COO");
+        Assertions.assertThat(decodedAuthenticate.getNtResponse()).isEqualTo(expectedNtResponse);
+        Assertions.assertThat(decodedAuthenticate.getLmResponse()).isEqualTo(expectedLmResponse);
+
+        System.out.println(decodedAuthenticate);
+    }
+
+    @Test
+    void decodeExistingTokens() throws URISyntaxException, IOException {
+        Matcher matcher = null;
+        //            read file that contains recorded auth tokens from actual network traffic
+        ClassLoader classLoader = this.getClass().getClassLoader();
+        Path filePath = Paths.get(classLoader.getResource("testFiles/auth_tokens.txt").toURI());
+        String fileContent = Files.readString(filePath, StandardCharsets.UTF_8);
+// split the tokens and decode each one
+        Pattern pattern = Pattern.compile("Authorization: NTLM (.*)");
+        matcher = pattern.matcher(fileContent);
+        int matches = 0;
+            while (matcher.find()) {
+                try {
+                    matches++;
+                    NtlmAuthenticate decodedAuthenticate = new NtlmAuthenticate();
+                    String capturedToken = matcher.group(1);
+                    Buffer.PlainBuffer preparedToken = Utils.prepareAuthToken(capturedToken);
+                    decodedAuthenticate.read(preparedToken);
+                    System.out.println(matches + ": " + decodedAuthenticate);
+                } catch (Buffer.BufferException e){
+                    System.out.println(matches + ": Token is faulty: " + matcher.group(1));
+                } catch (IllegalArgumentException e){
+                    System.out.println(matches + ": Last unit does not have enough valid bits: " + matcher.group(1));
+                }
+            }
     }
 }

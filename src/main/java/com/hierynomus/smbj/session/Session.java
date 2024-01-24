@@ -317,7 +317,7 @@ public class Session implements AutoCloseable {
      * matches the connection on which this message is received, and MUST use Channel.SigningKey for verifying the
      * signature as specified in section 3.1.5.1.
      *
-     *  Otherwise, the client MUST verify the signature of the message as specified in section 3.1.5.1,
+     * Otherwise, the client MUST verify the signature of the message as specified in section 3.1.5.1,
      * using Session.SessionKey as the signing key, and passing the response message.
      *
      *

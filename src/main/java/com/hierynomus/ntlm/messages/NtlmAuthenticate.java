@@ -205,8 +205,8 @@ public class NtlmAuthenticate extends NtlmMessage {
      */
     public void read(PlainBuffer buffer) throws Buffer.BufferException {
 // not used but makes sure the reader is in the right position
-        String signature = buffer.readString(Charsets.UTF_8, 8);
-        long messageType = buffer.readUInt32();
+        buffer.readString(Charsets.UTF_8, 8);
+        buffer.readUInt32();
 
         // reading the 6 fields that define the size of the payload fields at the end
         ResponseFields lmChallengeResponseFields = readOffsettedByteArrayFields(buffer);
@@ -221,6 +221,8 @@ public class NtlmAuthenticate extends NtlmMessage {
 //        according to the standard: when the Negotiate Version is set, 8 bytes of version info will be set
         if (negotiateFlags.contains(NTLMSSP_NEGOTIATE_VERSION)){
             this.version = new WindowsVersion().readFrom(buffer);
+        } else {
+            buffer.skip(8);
         }
 
 //        TODO verify this is right. As far as the doc goes, this is just a checksum

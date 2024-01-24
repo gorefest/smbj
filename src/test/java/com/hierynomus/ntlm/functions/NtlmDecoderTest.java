@@ -1,7 +1,9 @@
 package com.hierynomus.ntlm.functions;
 
 import com.hierynomus.ntlm.messages.NtlmAuthenticate;
+import com.hierynomus.ntlm.messages.NtlmChallenge;
 import com.hierynomus.ntlm.messages.Utils;
+import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -17,6 +19,38 @@ import java.util.regex.Pattern;
 
 
 class NtlmDecoderTest {
+
+    @Test
+    void decodeKnownChallengeToken() throws Buffer.BufferException, IOException {
+        NtlmChallenge decodedChallenge = new NtlmChallenge();
+        String recordedToken = "NTLM TlRMTVNTUAACAAAABgAGADgAAAAFgomiT/wTOGqjhNYAAAAAAAAAAJIAkgA+AAAABgGxHQAAAA9DAE8ATwACAAYAQwBPAE8AAQAYAEQATQBaAEMARwBOAE0ATwBTADAAMAAxAAQAEgBjAG8AbwAuAGwAbwBjAGEAbAADACwARABNAFoAQwBHAE4ATQBPAFMAMAAwADEALgBjAG8AbwAuAGwAbwBjAGEAbAAFABIAYwBvAG8ALgBsAG8AYwBhAGwABwAIAOGFCOlb8tkBAAAAAA==";
+//        String expectedNtResponse = "36 37 44 63 36 72 5b 72 84 7b 8e 6b 2d a3 05 49 " +
+//                                    "01 01 00 00 00 00 00 00 50 17 1f ab 86 48 da 01 " +
+//                                    "a3 fd cf 12 29 a6 aa 78 00 00 00 00 02 00 06 00 " +
+//                                    "43 00 4f 00 4f 00 01 00 18 00 43 00 4f 00 4f 00 " +
+//                                    "43 00 47 00 4e 00 4d 00 4f 00 53 00 30 00 30 00 " +
+//                                    "37 00 04 00 12 00 63 00 6f 00 6f 00 2e 00 6c 00 " +
+//                                    "6f 00 63 00 61 00 6c 00 03 00 2c 00 43 00 4f 00 " +
+//                                    "4f 00 43 00 47 00 4e 00 4d 00 4f 00 53 00 30 00 " +
+//                                    "30 00 37 00 2e 00 63 00 6f 00 6f 00 2e 00 6c 00 " +
+//                                    "6f 00 63 00 61 00 6c 00 05 00 12 00 63 00 6f 00 " +
+//                                    "6f 00 2e 00 6c 00 6f 00 63 00 61 00 6c 00 07 00 " +
+//                                    "08 00 17 76 1a ab 86 48 da 01 00 00 00 00 00 00 " +
+//                                    "00 00";
+//        String expectedLmResponse = "55 cf 1c 09 86 84 fa d5 62 93 8f ab b4 6e f8 51 f2 16 c0 ed 71 d2 68 ea";
+
+
+        Buffer.PlainBuffer preparedToken = Utils.prepareAuthToken(recordedToken);
+        decodedChallenge.read(preparedToken);
+
+//        The expected values are taken from Wiresharks decoding of the token
+        Assertions.assertThat(ByteArrayUtils.printHex(decodedChallenge.getServerChallenge())).isEqualTo("4f fc 13 38 6a a3 84 d6");
+        Assertions.assertThat(decodedChallenge.getTargetName()).isEqualTo("COO");
+
+        System.out.println(decodedChallenge);
+    }
+
+
 
     @Test
     void decodeKnownAuthToken() throws Buffer.BufferException {

@@ -2,6 +2,7 @@ package com.hierynomus.ntlm.functions;
 
 import com.hierynomus.ntlm.messages.NtlmAuthenticate;
 import com.hierynomus.ntlm.messages.NtlmChallenge;
+import com.hierynomus.ntlm.messages.NtlmNegotiate;
 import com.hierynomus.ntlm.messages.Utils;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
@@ -19,6 +20,22 @@ import java.util.regex.Pattern;
 
 
 class NtlmDecoderTest {
+
+
+    @Test
+    void decodeKnownNegotiateToken() throws Buffer.BufferException, IOException {
+        String recordedToken = "NTLM TlRMTVNTUAABAAAAAYIIogAAAAAoAAAAAAAAACgAAAAFASgKAAAADw==";
+        Buffer.PlainBuffer preparedToken = Utils.prepareAuthToken(recordedToken);
+        NtlmNegotiate decodedChallenge = new NtlmNegotiate();
+        decodedChallenge.read(preparedToken);
+//        decodedChallenge.read(preparedToken);
+
+//        The expected values are taken from Wiresharks decoding of the token
+//        Assertions.assertThat(ByteArrayUtils.printHex(decodedChallenge.getServerChallenge())).isEqualTo("4f fc 13 38 6a a3 84 d6");
+//        Assertions.assertThat(decodedChallenge.getTargetName()).isEqualTo("COO");
+
+        System.out.println(decodedChallenge);
+    }
 
     @Test
     void decodeKnownChallengeToken() throws Buffer.BufferException, IOException {

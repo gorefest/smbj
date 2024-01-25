@@ -18,6 +18,7 @@ package com.hierynomus.ntlm.messages;
 import com.hierynomus.protocol.Packet;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
+import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -44,7 +45,7 @@ public class NtlmPacket implements Packet<Buffer.PlainBuffer> {
     }
 
     @Override
-    public void read(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+    public void read(Buffer.PlainBuffer buffer) throws Buffer.BufferException, IOException {
         throw new UnsupportedOperationException("Not implemented by base class");
     }
 

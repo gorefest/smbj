@@ -43,8 +43,15 @@ public class NtlmNegotiate extends NtlmMessage {
         this.omitVersion = omitVersion;
     }
 
-    public NtlmNegotiate ( byte[] material ) throws IOException {
+    public NtlmNegotiate() {
+    }
+
+    public NtlmNegotiate (byte[] material ) throws IOException {
         parse(material);
+    }
+
+    public void read(Buffer.PlainBuffer buffer) throws IOException {
+        parse(buffer.array());
     }
 
 

@@ -17,9 +17,11 @@ package com.hierynomus.protocol;
 
 import com.hierynomus.protocol.commons.buffer.Buffer;
 
+import java.io.IOException;
+
 public interface Packet<B extends Buffer<B>> {
 
     void write(B buffer);
 
-    void read(B buffer) throws Buffer.BufferException;
+    void read(B buffer) throws Buffer.BufferException, IOException;
 }

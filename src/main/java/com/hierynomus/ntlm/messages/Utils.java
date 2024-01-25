@@ -19,10 +19,12 @@ import com.hierynomus.ntlm.ResponseFields;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 import static com.hierynomus.ntlm.functions.NtlmFunctions.unicode;
+import static com.hierynomus.ntlm.messages.NtlmPacket.*;
 
 public class Utils {
     public static byte[] EMPTY = new byte[0];
@@ -79,5 +81,49 @@ public class Utils {
         String resultString = (parts.length > 1) ? parts[1] : recordedToken;
 
         return resultString.getBytes(StandardCharsets.UTF_8);
+    }
+
+    public static NtlmPacket read(String recordedToken) throws IOException, Buffer.BufferException {
+        Buffer.PlainBuffer preparedToken = Utils.prepareAuthToken(recordedToken);
+        int messageType = getMessageType(preparedToken.array());
+        NtlmPacket message = null;
+        switch (messageType) {
+            case NTLMSSP_TYPE1:
+                System.out.println("Reading Type 1 message");
+                message = new NtlmNegotiate();
+                message.read(preparedToken);
+                break;
+            case NTLMSSP_TYPE2:
+                System.out.println("Reading Type 2 message");
+                message = new NtlmChallenge();
+                message.read(preparedToken);
+                break;
+            case NTLMSSP_TYPE3:
+                System.out.println("Reading Type 3 message");
+                message = new NtlmAuthenticate();
+                message.read(preparedToken);
+                break;
+            default:
+                throw new IOException("Not a valide message type.");
+
+        }
+        return message;
+
+    }
+
+    protected static void verifyMessageType(byte[] messageArray, int ntlmsspType) throws IOException {
+        for ( int i = 0; i < 8; i++ ) {
+            if ( messageArray[ i ] != NTLMSSP_SIGNATURE[ i ] ) {
+                throw new IOException("Not an NTLMSSP message.");
+            }
+        }
+
+        if (getMessageType(messageArray) != ntlmsspType ) {
+            throw new IOException("Not a Type "+ntlmsspType+" message.");
+        }
+    }
+
+    private static int getMessageType(byte[] messageArray) {
+        return readULong(messageArray, 8);
     }
 }

@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.EnumSet;
 
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
+import static com.hierynomus.ntlm.messages.Utils.verifyMessageType;
 
 /**
  * [MS-NLMP].pdf 2.2.1.2 CHALLENGE_MESSAGE
@@ -46,9 +47,6 @@ public class NtlmChallenge extends NtlmPacket {
 
 
     public NtlmChallenge () throws IOException {
-    }
-    public NtlmChallenge ( byte[] material ) throws IOException {
-        parse(material);
     }
 
     public NtlmChallenge(int flags, byte[] challenge, String target) {
@@ -102,7 +100,8 @@ public class NtlmChallenge extends NtlmPacket {
     }
 
     @Override
-    public void read(Buffer.PlainBuffer buffer) throws Buffer.BufferException {
+    public void read(Buffer.PlainBuffer buffer) throws Buffer.BufferException, IOException {
+        verifyMessageType(buffer.array(), NTLMSSP_TYPE2);
         buffer.readString(Charsets.UTF_8, 8); // Signature (8 bytes) (NTLMSSP\0)
         buffer.readUInt32(); // MessageType (4 bytes)
         readTargetNameFields(buffer); // TargetNameFields (8 bytes)
@@ -249,14 +248,14 @@ public class NtlmChallenge extends NtlmPacket {
     }
 
 
-    private void parse ( byte[] input ) {
-        Buffer.PlainBuffer buffer = new Buffer.PlainBuffer(input, Endian.BE);
-        try {
-            read(buffer);
-        } catch (Buffer.BufferException e) {
-            throw new RuntimeException(e);
-        }
-
+//    private void parse ( byte[] input ) {
+//        Buffer.PlainBuffer buffer = new Buffer.PlainBuffer(input, Endian.BE);
+//        try {
+//            read(buffer);
+//        } catch (Buffer.BufferException e) {
+//            throw new RuntimeException(e);
+//        }
+//
 //        int pos = 0;
 //        for ( int i = 0; i < 8; i++ ) {
 //            if ( input[ i ] != NTLMSSP_SIGNATURE[ i ] ) {
@@ -308,7 +307,7 @@ public class NtlmChallenge extends NtlmPacket {
 //        if ( targetInfo.length != 0 ) {
 //            setTargetInformation(targetInfo);
 //        }
-    }
+//    }
 
     private static boolean allZeros8 ( byte[] input, int pos ) {
         for ( int i = pos; i < pos + 8; i++ ) {

@@ -24,13 +24,10 @@ import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.protocol.commons.buffer.Endian;
 import com.hierynomus.protocol.commons.buffer.Buffer.PlainBuffer;
 
-import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_NTLM;
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.NTLMSSP_NEGOTIATE_VERSION;
 import static com.hierynomus.ntlm.messages.Utils.*;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Base64;
+import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -203,8 +200,10 @@ public class NtlmAuthenticate extends NtlmMessage {
      * @param buffer plain buffer containing auth string starting with 'NTLMSSP'
      * @throws Buffer.BufferException
      */
-    public void read(PlainBuffer buffer) throws Buffer.BufferException {
-// not used but makes sure the reader is in the right position
+    public void read(PlainBuffer buffer) throws Buffer.BufferException, IOException {
+
+        verifyMessageType(buffer.array(), NTLMSSP_TYPE3);
+
         buffer.readString(Charsets.UTF_8, 8);
         buffer.readUInt32();
 

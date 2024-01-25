@@ -1,9 +1,6 @@
 package com.hierynomus.ntlm.functions;
 
-import com.hierynomus.ntlm.messages.NtlmAuthenticate;
-import com.hierynomus.ntlm.messages.NtlmChallenge;
-import com.hierynomus.ntlm.messages.NtlmNegotiate;
-import com.hierynomus.ntlm.messages.Utils;
+import com.hierynomus.ntlm.messages.*;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.commons.buffer.Buffer;
 import org.assertj.core.api.Assertions;
@@ -21,11 +18,14 @@ import java.util.regex.Pattern;
 
 class NtlmDecoderTest {
 
+    String recordedNegotiateToken = "NTLM TlRMTVNTUAABAAAAAYIIogAAAAAoAAAAAAAAACgAAAAFASgKAAAADw==";
+    String recordedChallengeToken = "NTLM TlRMTVNTUAACAAAABgAGADgAAAAFgomiT/wTOGqjhNYAAAAAAAAAAJIAkgA+AAAABgGxHQAAAA9DAE8ATwACAAYAQwBPAE8AAQAYAEQATQBaAEMARwBOAE0ATwBTADAAMAAxAAQAEgBjAG8AbwAuAGwAbwBjAGEAbAADACwARABNAFoAQwBHAE4ATQBPAFMAMAAwADEALgBjAG8AbwAuAGwAbwBjAGEAbAAFABIAYwBvAG8ALgBsAG8AYwBhAGwABwAIAOGFCOlb8tkBAAAAAA==";
+    String recordedAuthToken = "NTLM TlRMTVNTUAADAAAAGAAYAEgAAADCAMIAYAAAAAYABgAiAQAAJAAkACgBAAAAAAAATAEAAAAAAABMAQAABYKJogUBKAoAAAAPVc8cCYaE+tVik4+rtG74UfIWwO1x0mjqNjdEYzZyW3KEe45rLaMFSQEBAAAAAAAAUBcfq4ZI2gGj/c8SKaaqeAAAAAACAAYAQwBPAE8AAQAYAEMATwBPAEMARwBOAE0ATwBTADAAMAA3AAQAEgBjAG8AbwAuAGwAbwBjAGEAbAADACwAQwBPAE8AQwBHAE4ATQBPAFMAMAAwADcALgBjAG8AbwAuAGwAbwBjAGEAbAAFABIAYwBvAG8ALgBsAG8AYwBhAGwABwAIABd2GquGSNoBAAAAAAAAAABDAE8ATwBzAGEAXwB3AGUAYgBzAGUAcgB2AGkAYwBlAF8AdABlAHMAdAA=";
+
 
     @Test
-    void decodeKnownNegotiateToken() throws Buffer.BufferException, IOException {
-        String recordedToken = "NTLM TlRMTVNTUAABAAAAAYIIogAAAAAoAAAAAAAAACgAAAAFASgKAAAADw==";
-        Buffer.PlainBuffer preparedToken = Utils.prepareAuthToken(recordedToken);
+    void decodeKnownNegotiateToken() throws IOException {
+        Buffer.PlainBuffer preparedToken = Utils.prepareAuthToken(recordedNegotiateToken);
         NtlmNegotiate decodedChallenge = new NtlmNegotiate();
         decodedChallenge.read(preparedToken);
 //        decodedChallenge.read(preparedToken);
@@ -40,8 +40,7 @@ class NtlmDecoderTest {
     @Test
     void decodeKnownChallengeToken() throws Buffer.BufferException, IOException {
         NtlmChallenge decodedChallenge = new NtlmChallenge();
-        String recordedToken = "NTLM TlRMTVNTUAACAAAABgAGADgAAAAFgomiT/wTOGqjhNYAAAAAAAAAAJIAkgA+AAAABgGxHQAAAA9DAE8ATwACAAYAQwBPAE8AAQAYAEQATQBaAEMARwBOAE0ATwBTADAAMAAxAAQAEgBjAG8AbwAuAGwAbwBjAGEAbAADACwARABNAFoAQwBHAE4ATQBPAFMAMAAwADEALgBjAG8AbwAuAGwAbwBjAGEAbAAFABIAYwBvAG8ALgBsAG8AYwBhAGwABwAIAOGFCOlb8tkBAAAAAA==";
-        Buffer.PlainBuffer preparedToken = Utils.prepareAuthToken(recordedToken);
+        Buffer.PlainBuffer preparedToken = Utils.prepareAuthToken(recordedChallengeToken);
         decodedChallenge.read(preparedToken);
 
 //        The expected values are taken from Wiresharks decoding of the token
@@ -52,11 +51,9 @@ class NtlmDecoderTest {
     }
 
 
-
     @Test
-    void decodeKnownAuthToken() throws Buffer.BufferException {
+    void decodeKnownAuthToken() throws Buffer.BufferException, IOException {
         NtlmAuthenticate decodedAuthenticate = new NtlmAuthenticate();
-        String recordedToken = "NTLM TlRMTVNTUAADAAAAGAAYAEgAAADCAMIAYAAAAAYABgAiAQAAJAAkACgBAAAAAAAATAEAAAAAAABMAQAABYKJogUBKAoAAAAPVc8cCYaE+tVik4+rtG74UfIWwO1x0mjqNjdEYzZyW3KEe45rLaMFSQEBAAAAAAAAUBcfq4ZI2gGj/c8SKaaqeAAAAAACAAYAQwBPAE8AAQAYAEMATwBPAEMARwBOAE0ATwBTADAAMAA3AAQAEgBjAG8AbwAuAGwAbwBjAGEAbAADACwAQwBPAE8AQwBHAE4ATQBPAFMAMAAwADcALgBjAG8AbwAuAGwAbwBjAGEAbAAFABIAYwBvAG8ALgBsAG8AYwBhAGwABwAIABd2GquGSNoBAAAAAAAAAABDAE8ATwBzAGEAXwB3AGUAYgBzAGUAcgB2AGkAYwBlAF8AdABlAHMAdAA=";
         String expectedNtResponse = "36 37 44 63 36 72 5b 72 84 7b 8e 6b 2d a3 05 49 " +
                                     "01 01 00 00 00 00 00 00 50 17 1f ab 86 48 da 01 " +
                                     "a3 fd cf 12 29 a6 aa 78 00 00 00 00 02 00 06 00 " +
@@ -73,7 +70,7 @@ class NtlmDecoderTest {
         String expectedLmResponse = "55 cf 1c 09 86 84 fa d5 62 93 8f ab b4 6e f8 51 f2 16 c0 ed 71 d2 68 ea";
 
 
-        Buffer.PlainBuffer preparedToken = Utils.prepareAuthToken(recordedToken);
+        Buffer.PlainBuffer preparedToken = Utils.prepareAuthToken(recordedAuthToken);
         decodedAuthenticate.read(preparedToken);
 
 //        The expected values are taken from Wiresharks decoding of the token
@@ -86,7 +83,7 @@ class NtlmDecoderTest {
     }
 
     @Test
-    void decodeExistingTokens() throws URISyntaxException, IOException {
+    void decodeExistingAuthTokens() throws URISyntaxException, IOException {
         Matcher matcher = null;
         //            read file that contains recorded auth tokens from actual network traffic
         ClassLoader classLoader = this.getClass().getClassLoader();
@@ -96,19 +93,26 @@ class NtlmDecoderTest {
         Pattern pattern = Pattern.compile("Authorization: NTLM (.*)");
         matcher = pattern.matcher(fileContent);
         int matches = 0;
-            while (matcher.find()) {
-                try {
-                    matches++;
-                    NtlmAuthenticate decodedAuthenticate = new NtlmAuthenticate();
-                    String capturedToken = matcher.group(1);
-                    Buffer.PlainBuffer preparedToken = Utils.prepareAuthToken(capturedToken);
-                    decodedAuthenticate.read(preparedToken);
-                    System.out.println(matches + ": " + decodedAuthenticate);
-                } catch (Buffer.BufferException e){
-                    System.out.println(matches + ": Token is faulty: " + matcher.group(1));
-                } catch (IllegalArgumentException e){
-                    System.out.println(matches + ": Last unit does not have enough valid bits: " + matcher.group(1));
-                }
+        while (matcher.find()) {
+            try {
+                matches++;
+                NtlmAuthenticate decodedAuthenticate = new NtlmAuthenticate();
+                String capturedToken = matcher.group(1);
+                Buffer.PlainBuffer preparedToken = Utils.prepareAuthToken(capturedToken);
+                decodedAuthenticate.read(preparedToken);
+                System.out.println(matches + ": " + decodedAuthenticate);
+            } catch (Buffer.BufferException e) {
+                System.out.println(matches + ": Token is faulty: " + matcher.group(1));
+            } catch (IllegalArgumentException e) {
+                System.out.println(matches + ": Last unit does not have enough valid bits: " + matcher.group(1));
             }
+        }
+    }
+
+    @Test
+    void decodeUnknownToken() throws Buffer.BufferException, IOException {
+        NtlmPacket message = Utils.read(recordedNegotiateToken);
+
+        System.out.println(message);
     }
 }

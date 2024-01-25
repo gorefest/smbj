@@ -15,9 +15,6 @@
  */
 package com.hierynomus.ntlm.messages;
 
-import static com.hierynomus.ntlm.messages.Utils.EMPTY;
-import static com.hierynomus.ntlm.messages.Utils.writeOffsettedByteArrayFields;
-
 import com.hierynomus.ntlm.functions.NtlmFunctions;
 import com.hierynomus.protocol.commons.Charsets;
 import com.hierynomus.protocol.commons.buffer.Buffer;
@@ -26,6 +23,7 @@ import java.io.IOException;
 import java.util.Set;
 
 import static com.hierynomus.ntlm.messages.NtlmNegotiateFlag.*;
+import static com.hierynomus.ntlm.messages.Utils.*;
 
 /**
  * [MS-NLMP].pdf 2.2.1.1 NEGOTIATE_MESSAGE
@@ -51,6 +49,9 @@ public class NtlmNegotiate extends NtlmMessage {
     }
 
     public void read(Buffer.PlainBuffer buffer) throws IOException {
+//        TODO this should be made consistent with NtlmAuthenticate and NtlmChallenge
+//        either add a parse for the others, or remove it here
+        verifyMessageType(buffer.array(), NTLMSSP_TYPE1);
         parse(buffer.array());
     }
 
